@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # Qdrant 向量数据库
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_db
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+    networks:
+      - knowledge-base-network
+
+  # 知识库 API 服务
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: knowledge_base_api
+    ports:
+      - "5000:80"
+    volumes:
+      # 持久化上传的图片文件
+      - uploaded_images:/app/wwwroot/uploads/images
+      # 持久化其他上传文件
+      - uploaded_files:/app/wwwroot/uploads
+      # 持久化日志文件
+      - api_logs:/app/logs
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      # LLM 配置（支持任何 OpenAI 兼容的提供商）
+      - LLM__Provider=Doubao
+      - LLM__BaseUrl=https://ark.cn-beijing.volces.com
+      - LLM__ApiKey=${LLM_API_KEY:-}
+      - LLM__EmbeddingModel=doubao-embedding-text-240715
+      - LLM__ChatModel=doubao-1-5-pro-256k-250115
+      - LLM__EmbeddingEndpoint=/api/v3/embeddings
+      - LLM__ChatEndpoint=/api/v3/chat/completions
+      - LLM__VectorDimension=2560
+      # 向后兼容（部分代码可能还在读取 DeepSeek 配置）
+      - DeepSeek__ApiKey=${DEEPSEEK_API_KEY:-${LLM_API_KEY:-}}
+      - DeepSeek__BaseUrl=https://ark.cn-beijing.volces.com
+      # 其他服务
+      - Qdrant__BaseUrl=http://qdrant:6333
+      - Qdrant__Endpoint=http://qdrant:6333
+      - Redis__ConnectionString=${REDIS_CONNECTION_STRING:-localhost:6379}
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=host.docker.internal;Port=5432;Database=knowledge_base;Username=postgres;Password=postgres}
+      # Semantic Kernel 开关
+      - RAG__UseSemanticKernel=true
+    depends_on:
+      qdrant:
+        condition: service_started
+    networks:
+      - knowledge-base-network
+    restart: unless-stopped
+
+  # 前端 Web 应用
+  web:
+    build:
+      context: ../KnowledgeBaseService.Web
+      dockerfile: Dockerfile
+    container_name: knowledge_base_web
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    networks:
+      - knowledge-base-network
+    restart: unless-stopped
+
+volumes:
+  qdrant_storage:
+  uploaded_images:
+  uploaded_files:
+  api_logs:
+
+networks:
+  knowledge-base-network:
+    driver: bridge

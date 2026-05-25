@@ -1,0 +1,71 @@
+# .gitignore
+
+# Build results
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+out/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+*.nuget.props
+*.nuget.targets
+
+# Visual Studio
+.vs/
+.vscode/
+*.sln.iml
+
+# Test Results
+TestResults/
+*.trx
+
+# User-specific files
+*.user
+*.userosscache
+*.sln.user
+*.suo
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Node
+node_modules/
+npm-debug.log*
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+docker/data/
+
+# Node (if used)
+node_modules/
+package-lock.json
+
+# Rider
+.idea/
+*.iml
+
+# ReSharper
+_ReSharper*/
+*.DotSettings.user
